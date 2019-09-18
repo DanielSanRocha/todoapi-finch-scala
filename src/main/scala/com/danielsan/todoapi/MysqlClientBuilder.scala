@@ -22,15 +22,4 @@ class MySqlClientBuilder(conf: Config) {
     .newRichClient("%s:%d".format(url.getHostName, url.getPort))
 
   def getClient: Client with Transactions = client
-
-  def createTables: Future[Result] = {
-    client.query("""
-      CREATE TABLE IF NOT EXISTS `tb_users` (
-         `id` bigint(20) NOT NULL AUTO_INCREMENT,
-         `name` varchar(255) NOT NULL,
-         `create_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-         `update_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-         PRIMARY KEY (`id`)
-         ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8""")
-  }
 }

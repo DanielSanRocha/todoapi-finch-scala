@@ -1,20 +1,8 @@
 package com.danielsan.todoapi.controllers
 
 import com.danielsan.todoapi.models._
-import com.danielsan.todoapi.repositories.{TodoRepositoryImpl, UserRepository, UserRepositoryImpl}
-import com.twitter.finagle.mysql.Client
+import com.danielsan.todoapi.repositories.UserRepository
 import io.finch._
-
-object UserController {
-  def getEndpoints()(implicit client: Client) = {
-    val repositoryImpl = new UserRepositoryImpl
-    val controller = new UserController(repositoryImpl)
-
-    controller.endpoints.handle {
-      case e: Exception => InternalServerError(e)
-    }
-  }
-}
 
 class UserController(repository: UserRepository) {
   private val getUser: Endpoint[User] = get("user" :: path[Long]) { id: Long =>
@@ -30,5 +18,7 @@ class UserController(repository: UserRepository) {
     }
   }
 
-  val endpoints = getUser :+: getUsers
+  def getEndpoints() = (getUser :+: getUsers).handle {
+    case e: Exception => InternalServerError(e)
+  }
 }

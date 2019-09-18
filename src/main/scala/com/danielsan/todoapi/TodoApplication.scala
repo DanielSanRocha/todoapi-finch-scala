@@ -1,13 +1,11 @@
 package com.danielsan.todoapi
 
 import com.danielsan.todoapi.controllers._
-
+import com.danielsan.todoapi.repositories.SQLRepositoriesImpl
 import com.typesafe.config.{Config, ConfigFactory}
-
 import com.twitter.finagle.Http
 import com.twitter.server.TwitterServer
 import com.twitter.util.Await
-
 import io.finch.Application
 import io.circe.generic.auto._
 import io.finch.circe._
@@ -17,14 +15,18 @@ object TodoApplication extends TwitterServer {
   implicit val conf: Config = ConfigFactory.load()
   val port = conf.getInt("api.port")
 
-  // Database Configuration
-  val mySqlClientBuilder = new MySqlClientBuilder(conf)
-  implicit val mySqlClient = mySqlClientBuilder.getClient
+  // Mysql Database Client Configuration
+  implicit val mySqlClient = new MySqlClientBuilder(conf).getClient
 
-  // Loading controllers endpoints
-  lazy val todoEndpoints = TodoController.getEndpoints()
-  lazy val userEndpoints = UserController.getEndpoints()
-  lazy val api = todoEndpoints :+: userEndpoints
+  // Loading repositories
+  val sqlRepositories = new SQLRepositoriesImpl
+
+  // Loading controllers
+  lazy val todoController = new TodoController(sqlRepositories.TodoRepositoryImpl)
+  lazy val userController = new UserController(sqlRepositories.UserRepositoryImpl)
+
+  // Joining all endpoints
+  lazy val api = todoController.getEndpoints() :+: userController.getEndpoints()
 
   def start(): Unit = {
 //    // Preparing the server
@@ -33,8 +35,10 @@ object TodoApplication extends TwitterServer {
       .serve(s":${port}", api.toServiceAs[Application.Json])
     closeOnExit(server)
 
-    // Creating tables in the database
-    Await.result(mySqlClientBuilder.createTables)
+    // Create the tables in the database
+    sqlRepositories.createTables() foreach { query =>
+      Await.result(query)
+    }
 
     // Starting server
     Await.ready(server)

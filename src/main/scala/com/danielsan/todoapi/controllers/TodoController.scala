@@ -1,20 +1,8 @@
 package com.danielsan.todoapi.controllers
 
 import com.danielsan.todoapi.models._
-import com.twitter.finagle.mysql.Client
-import com.danielsan.todoapi.repositories.{TodoRepository, TodoRepositoryImpl}
+import com.danielsan.todoapi.repositories.TodoRepository
 import io.finch._
-
-object TodoController {
-  def getEndpoints()(implicit client: Client) = {
-    val repositoryImpl = new TodoRepositoryImpl
-    val controller = new TodoController(repositoryImpl)
-
-    controller.endpoints.handle {
-      case e: Exception => InternalServerError(e)
-    }
-  }
-}
 
 class TodoController(repository: TodoRepository) {
   private val getTodo: Endpoint[Todo] = get("todo" :: path[Long]) { id: Long =>
@@ -30,5 +18,7 @@ class TodoController(repository: TodoRepository) {
     }
   }
 
-  val endpoints = getTodo :+: getTodos
+  def getEndpoints() = (getTodo :+: getTodos).handle {
+    case e: Exception => InternalServerError(e)
+  }
 }
